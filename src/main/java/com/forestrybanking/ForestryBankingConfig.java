@@ -9,51 +9,63 @@ import net.runelite.client.config.ConfigSection;
 public interface ForestryBankingConfig extends Config
 {
 	@ConfigSection(
-		name = "Auto-Deposit",
-		description = "Automatically deposit when the bank is opened",
+		name = "Logs",
+		description = "Menu swap options for logs in your bank inventory",
 		position = 0
 	)
-	String autoDepositSection = "autoDeposit";
+	String logsSection = "logs";
 
 	@ConfigItem(
-		keyName = "autoDepositInventory",
-		name = "Auto-deposit inventory logs",
-		description = "When the bank opens, automatically deposit all logs sitting in your inventory",
-		section = autoDepositSection,
+		keyName = "logsLeftClick",
+		name = "Left-click to deposit all",
+		description = "Makes 'Deposit-All' the left-click action on logs while the bank is open",
+		section = logsSection,
 		position = 1
 	)
-	default boolean autoDepositInventory()
+	default boolean logsLeftClick()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigItem(
-		keyName = "autoDepositBasket",
-		name = "Auto-deposit basket logs",
-		description = "When the bank opens, automatically empty your log basket (worn or in inventory) and deposit the logs",
-		section = autoDepositSection,
+		keyName = "logsRightClick",
+		name = "Promote to top of right-click",
+		description = "Moves 'Deposit-All' to the top of the right-click menu on logs while the bank is open",
+		section = logsSection,
 		position = 2
 	)
-	default boolean autoDepositBasket()
+	default boolean logsRightClick()
 	{
-		return true;
+		return false;
 	}
 
 	@ConfigSection(
-		name = "Manual",
-		description = "Manual deposit options",
+		name = "Log Basket",
+		description = "Menu swap options for your log basket (inventory or worn Forestry kit)",
 		position = 3
 	)
-	String manualSection = "manual";
+	String basketSection = "basket";
 
 	@ConfigItem(
-		keyName = "clickToDepositAll",
-		name = "Click logs to deposit all",
-		description = "Adds a 'Deposit all logs' right-click option on logs while the bank is open — empties basket and deposits everything in one click",
-		section = manualSection,
+		keyName = "basketLeftClick",
+		name = "Left-click to empty",
+		description = "Makes 'Empty' the left-click action on your log basket (or 'Empty log basket' on a worn Forestry kit) while the bank is open",
+		section = basketSection,
 		position = 4
 	)
-	default boolean clickToDepositAll()
+	default boolean basketLeftClick()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "basketRightClick",
+		name = "Promote to top of right-click",
+		description = "Moves 'Empty' to the top of the right-click menu on your log basket (or 'Empty log basket' on a worn Forestry kit) while the bank is open",
+		section = basketSection,
+		position = 5
+	)
+	default boolean basketRightClick()
 	{
 		return false;
 	}

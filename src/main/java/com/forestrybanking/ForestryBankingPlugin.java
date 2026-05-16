@@ -6,16 +6,11 @@ import java.util.Set;
 import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.InventoryID;
-import net.runelite.api.Item;
-import net.runelite.api.ItemContainer;
-import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuEntryAdded;
-import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -24,14 +19,14 @@ import net.runelite.client.plugins.PluginDescriptor;
 @Slf4j
 @PluginDescriptor(
 	name = "Forestry Banking Helper",
-	description = "Auto-deposits logs from your inventory and log basket when banking",
+	description = "Streamlines banking logs by swapping menu options on logs and your log basket",
 	tags = {"forestry", "woodcutting", "logs", "basket", "banking"}
 )
 public class ForestryBankingPlugin extends Plugin
 {
 	// -----------------------------------------------------------------------
 	// TODO: Verify these item IDs in-game.
-	// Hover over the item with the "Item ID" RuneLite plugin enabled,
+	// Enable the "Item ID" RuneLite plugin and hover over the item,
 	// or look them up on the OSRS Wiki.
 	// -----------------------------------------------------------------------
 	private static final int LOG_BASKET_ITEM_ID   = 28113; // Log basket (in inventory)
@@ -50,24 +45,6 @@ public class ForestryBankingPlugin extends Plugin
 		19669  // Redwood logs
 	);
 
-	// -----------------------------------------------------------------------
-	// TODO: If depositing or emptying does nothing, these op codes may need
-	// adjusting. Right-click the item in-game and count which position the
-	// option appears (1 = first option).
-	// -----------------------------------------------------------------------
-	private static final int DEPOSIT_ALL_OP      = 8; // "Deposit-All" on a bank inventory item
-	private static final int BASKET_EMPTY_OP     = 2; // "Empty" on Log basket in inventory
-	private static final int KIT_EMPTY_BASKET_OP = 3; // "Empty log basket" on worn Forestry kit
-
-	private static final String DEPOSIT_ALL_OPTION = "Deposit all logs";
-
-	private enum BankState
-	{
-		IDLE,
-		EMPTY_BASKET,  // send the empty action this tick
-		DEPOSIT_LOGS   // deposit all logs in inventory this tick
-	}
-
 	@Inject
 	private Client client;
 
@@ -75,7 +52,6 @@ public class ForestryBankingPlugin extends Plugin
 	private ForestryBankingConfig config;
 
 	private boolean bankOpen = false;
-	private BankState bankState = BankState.IDLE;
 
 	@Override
 	protected void startUp()
@@ -87,240 +63,148 @@ public class ForestryBankingPlugin extends Plugin
 	protected void shutDown()
 	{
 		bankOpen = false;
-		bankState = BankState.IDLE;
 		log.debug("Forestry Banking Helper stopped");
 	}
 
-	// Fires once the real bank inventory widget is loaded (i.e. after any PIN entry).
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
-		if (event.getGroupId() != InterfaceID.BANKMAIN)
+		if (event.getGroupId() == InterfaceID.BANKMAIN)
 		{
-			return;
-		}
-
-		bankOpen = true;
-
-		boolean basketEnabled    = config.autoDepositBasket();
-		boolean inventoryEnabled = config.autoDepositInventory();
-
-		if (basketEnabled && findBasketSlot() >= 0)
-		{
-			bankState = BankState.EMPTY_BASKET;
-		}
-		else if (inventoryEnabled && hasLogsInInventory())
-		{
-			bankState = BankState.DEPOSIT_LOGS;
+			bankOpen = true;
 		}
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
-		// Detect bank closed by checking whether the widget is still present.
 		if (bankOpen && client.getWidget(InterfaceID.Bankside.ITEMS) == null)
 		{
 			bankOpen = false;
-			bankState = BankState.IDLE;
-			return;
 		}
+	}
 
+	@Subscribe
+	public void onMenuEntryAdded(MenuEntryAdded event)
+	{
 		if (!bankOpen)
 		{
 			return;
 		}
 
-		switch (bankState)
+		int itemId    = event.getIdentifier();
+		int widgetId  = event.getActionParam1();
+
+		// ---- Logs in bank inventory ----------------------------------------
+		if (LOG_ITEM_IDS.contains(itemId) && widgetId == InterfaceID.Bankside.ITEMS)
 		{
-			case EMPTY_BASKET:
-				emptyBasket();
-				// Wait one tick for logs to land in inventory before depositing.
-				bankState = BankState.DEPOSIT_LOGS;
-				break;
-
-			case DEPOSIT_LOGS:
-				depositAllLogs();
-				bankState = BankState.IDLE;
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	// Adds a "Deposit all logs" right-click option on logs in the bank inventory panel.
-	@Subscribe
-	public void onMenuEntryAdded(MenuEntryAdded event)
-	{
-		if (!bankOpen || !config.clickToDepositAll())
-		{
-			return;
-		}
-
-		if (event.getActionParam1() != InterfaceID.Bankside.ITEMS)
-		{
-			return;
-		}
-
-		if (!LOG_ITEM_IDS.contains(event.getIdentifier()))
-		{
-			return;
-		}
-
-		client.createMenuEntry(-1)
-			.setOption(DEPOSIT_ALL_OPTION)
-			.setTarget(event.getTarget())
-			.setType(MenuAction.RUNELITE)
-			.setParam0(event.getActionParam0())
-			.setParam1(event.getActionParam1())
-			.setIdentifier(event.getIdentifier());
-	}
-
-	@Subscribe
-	public void onMenuOptionClicked(MenuOptionClicked event)
-	{
-		if (event.getMenuAction() != MenuAction.RUNELITE
-			|| !event.getMenuOption().equals(DEPOSIT_ALL_OPTION))
-		{
-			return;
-		}
-
-		event.consume();
-
-		if (config.autoDepositBasket() && findBasketSlot() >= 0)
-		{
-			bankState = BankState.EMPTY_BASKET;
-		}
-		else
-		{
-			depositAllLogs();
-		}
-	}
-
-	// -----------------------------------------------------------------------
-	// Actions
-	// -----------------------------------------------------------------------
-
-	private void emptyBasket()
-	{
-		int inventorySlot = findBasketInInventory();
-		if (inventorySlot >= 0)
-		{
-			log.debug("Emptying log basket from inventory slot {}", inventorySlot);
-			client.menuAction(
-				inventorySlot, InterfaceID.Bankside.ITEMS,
-				MenuAction.CC_OP, BASKET_EMPTY_OP, LOG_BASKET_ITEM_ID,
-				"Empty", "<col=ff9040>Log basket</col>"
-			);
-			return;
-		}
-
-		int equipSlot = findBasketInEquipment();
-		if (equipSlot >= 0)
-		{
-			log.debug("Emptying log basket from worn Forestry kit (equip slot {})", equipSlot);
-			client.menuAction(
-				equipSlot, InterfaceID.Equipment.CONTENTS,
-				MenuAction.CC_OP, KIT_EMPTY_BASKET_OP, FORESTRY_KIT_ITEM_ID,
-				"Empty log basket", "<col=ff9040>Forestry kit</col>"
-			);
-		}
-	}
-
-	private void depositAllLogs()
-	{
-		Widget bankInventory = client.getWidget(InterfaceID.Bankside.ITEMS);
-		if (bankInventory == null)
-		{
-			return;
-		}
-
-		Widget[] items = bankInventory.getDynamicChildren();
-		if (items == null)
-		{
-			return;
-		}
-
-		for (Widget item : items)
-		{
-			if (LOG_ITEM_IDS.contains(item.getItemId()))
+			if (config.logsLeftClick())
 			{
-				log.debug("Depositing log item {} at slot {}", item.getItemId(), item.getIndex());
-				client.menuAction(
-					item.getIndex(), InterfaceID.Bankside.ITEMS,
-					MenuAction.CC_OP, DEPOSIT_ALL_OP, item.getItemId(),
-					"Deposit-All", ""
-				);
+				swapToLeftClick("Deposit-All");
+			}
+			else if (config.logsRightClick())
+			{
+				promoteToTopRightClick("Deposit-All");
+			}
+		}
+
+		// ---- Log basket in bank inventory ------------------------------------
+		if (itemId == LOG_BASKET_ITEM_ID && widgetId == InterfaceID.Bankside.ITEMS)
+		{
+			if (config.basketLeftClick())
+			{
+				swapToLeftClick("Empty");
+			}
+			else if (config.basketRightClick())
+			{
+				promoteToTopRightClick("Empty");
+			}
+		}
+
+		// ---- Forestry kit worn (equipment panel) ----------------------------
+		if (itemId == FORESTRY_KIT_ITEM_ID && widgetId == InterfaceID.Equipment.CONTENTS)
+		{
+			if (config.basketLeftClick())
+			{
+				swapToLeftClick("Empty log basket");
+			}
+			else if (config.basketRightClick())
+			{
+				promoteToTopRightClick("Empty log basket");
 			}
 		}
 	}
 
 	// -----------------------------------------------------------------------
-	// Helpers
+	// Menu helpers
 	// -----------------------------------------------------------------------
 
-	/** Returns the first slot index where a basket is found, or -1. */
-	private int findBasketSlot()
+	/**
+	 * Moves the first menu entry whose option matches {@code option} to the
+	 * last position in the entries array, making it the left-click action.
+	 */
+	private void swapToLeftClick(String option)
 	{
-		int slot = findBasketInInventory();
-		return slot >= 0 ? slot : findBasketInEquipment();
-	}
+		MenuEntry[] entries = client.getMenuEntries();
+		int last = entries.length - 1;
 
-	private int findBasketInInventory()
-	{
-		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-		if (inventory == null)
+		for (int i = last; i >= 0; i--)
 		{
-			return -1;
-		}
-
-		Item[] items = inventory.getItems();
-		for (int i = 0; i < items.length; i++)
-		{
-			if (items[i].getId() == LOG_BASKET_ITEM_ID)
+			if (entries[i].getOption().equalsIgnoreCase(option))
 			{
-				return i;
+				if (i == last)
+				{
+					return; // already left-click
+				}
+				MenuEntry temp  = entries[last];
+				entries[last]   = entries[i];
+				entries[i]      = temp;
+				client.setMenuEntries(entries);
+				return;
 			}
 		}
-		return -1;
 	}
 
-	private int findBasketInEquipment()
+	/**
+	 * Moves the first menu entry whose option matches {@code option} to the
+	 * second-to-last position, making it the first (top) right-click option.
+	 */
+	private void promoteToTopRightClick(String option)
 	{
-		ItemContainer equipment = client.getItemContainer(InventoryID.EQUIPMENT);
-		if (equipment == null)
+		MenuEntry[] entries = client.getMenuEntries();
+		int count = entries.length;
+
+		if (count < 2)
 		{
-			return -1;
+			return;
 		}
 
-		Item[] items = equipment.getItems();
-		for (int i = 0; i < items.length; i++)
+		int target = count - 2; // just below left-click
+
+		for (int i = count - 1; i >= 0; i--)
 		{
-			if (items[i].getId() == FORESTRY_KIT_ITEM_ID)
+			if (entries[i].getOption().equalsIgnoreCase(option))
 			{
-				return i;
+				if (i == target)
+				{
+					return; // already at the top right-click position
+				}
+				MenuEntry entry = entries[i];
+
+				if (i < target)
+				{
+					System.arraycopy(entries, i + 1, entries, i, target - i);
+				}
+				else
+				{
+					System.arraycopy(entries, target, entries, target + 1, i - target);
+				}
+
+				entries[target] = entry;
+				client.setMenuEntries(entries);
+				return;
 			}
 		}
-		return -1;
-	}
-
-	private boolean hasLogsInInventory()
-	{
-		ItemContainer inventory = client.getItemContainer(InventoryID.INVENTORY);
-		if (inventory == null)
-		{
-			return false;
-		}
-
-		for (Item item : inventory.getItems())
-		{
-			if (LOG_ITEM_IDS.contains(item.getId()))
-			{
-				return true;
-			}
-		}
-		return false;
 	}
 
 	@Provides

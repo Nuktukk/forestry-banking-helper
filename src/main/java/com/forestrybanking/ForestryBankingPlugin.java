@@ -14,8 +14,8 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.widgets.Widget;
-import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
@@ -31,8 +31,8 @@ public class ForestryBankingPlugin extends Plugin
 {
 	// -----------------------------------------------------------------------
 	// TODO: Verify these item IDs in-game.
-	// Easiest way: hover over the item and check the tooltip with the
-	// "Item ID" RuneLite plugin enabled, or look them up on the OSRS Wiki.
+	// Hover over the item with the "Item ID" RuneLite plugin enabled,
+	// or look them up on the OSRS Wiki.
 	// -----------------------------------------------------------------------
 	private static final int LOG_BASKET_ITEM_ID   = 28113; // Log basket (in inventory)
 	private static final int FORESTRY_KIT_ITEM_ID = 28908; // Forestry kit (worn)
@@ -50,13 +50,10 @@ public class ForestryBankingPlugin extends Plugin
 		19669  // Redwood logs
 	);
 
-	// Bank interface group ID — fires after bank PIN is cleared.
-	private static final int BANK_GROUP_ID = 12;
-
 	// -----------------------------------------------------------------------
 	// TODO: If depositing or emptying does nothing, these op codes may need
-	// adjusting. Right-click the relevant item in-game and count which
-	// position "Empty" or "Deposit-All" appears in the menu (1 = first option).
+	// adjusting. Right-click the item in-game and count which position the
+	// option appears (1 = first option).
 	// -----------------------------------------------------------------------
 	private static final int DEPOSIT_ALL_OP      = 8; // "Deposit-All" on a bank inventory item
 	private static final int BASKET_EMPTY_OP     = 2; // "Empty" on Log basket in inventory
@@ -98,7 +95,7 @@ public class ForestryBankingPlugin extends Plugin
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event)
 	{
-		if (event.getGroupId() != BANK_GROUP_ID)
+		if (event.getGroupId() != InterfaceID.BANKMAIN)
 		{
 			return;
 		}
@@ -122,7 +119,7 @@ public class ForestryBankingPlugin extends Plugin
 	public void onGameTick(GameTick event)
 	{
 		// Detect bank closed by checking whether the widget is still present.
-		if (bankOpen && client.getWidget(WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER) == null)
+		if (bankOpen && client.getWidget(InterfaceID.Bankside.ITEMS) == null)
 		{
 			bankOpen = false;
 			bankState = BankState.IDLE;
@@ -161,7 +158,7 @@ public class ForestryBankingPlugin extends Plugin
 			return;
 		}
 
-		if (event.getActionParam1() != WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId())
+		if (event.getActionParam1() != InterfaceID.Bankside.ITEMS)
 		{
 			return;
 		}
@@ -212,7 +209,7 @@ public class ForestryBankingPlugin extends Plugin
 		{
 			log.debug("Emptying log basket from inventory slot {}", inventorySlot);
 			client.menuAction(
-				inventorySlot, WidgetInfo.INVENTORY.getId(),
+				inventorySlot, InterfaceID.Bankside.ITEMS,
 				MenuAction.CC_OP, BASKET_EMPTY_OP, LOG_BASKET_ITEM_ID,
 				"Empty", "<col=ff9040>Log basket</col>"
 			);
@@ -223,9 +220,8 @@ public class ForestryBankingPlugin extends Plugin
 		if (equipSlot >= 0)
 		{
 			log.debug("Emptying log basket from worn Forestry kit (equip slot {})", equipSlot);
-			// TODO: Verify WidgetInfo.EQUIPMENT.getId() is the correct widget for worn items.
 			client.menuAction(
-				equipSlot, WidgetInfo.EQUIPMENT.getId(),
+				equipSlot, InterfaceID.Equipment.CONTENTS,
 				MenuAction.CC_OP, KIT_EMPTY_BASKET_OP, FORESTRY_KIT_ITEM_ID,
 				"Empty log basket", "<col=ff9040>Forestry kit</col>"
 			);
@@ -234,7 +230,7 @@ public class ForestryBankingPlugin extends Plugin
 
 	private void depositAllLogs()
 	{
-		Widget bankInventory = client.getWidget(WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER);
+		Widget bankInventory = client.getWidget(InterfaceID.Bankside.ITEMS);
 		if (bankInventory == null)
 		{
 			return;
@@ -252,7 +248,7 @@ public class ForestryBankingPlugin extends Plugin
 			{
 				log.debug("Depositing log item {} at slot {}", item.getItemId(), item.getIndex());
 				client.menuAction(
-					item.getIndex(), WidgetInfo.BANK_INVENTORY_ITEMS_CONTAINER.getId(),
+					item.getIndex(), InterfaceID.Bankside.ITEMS,
 					MenuAction.CC_OP, DEPOSIT_ALL_OP, item.getItemId(),
 					"Deposit-All", ""
 				);

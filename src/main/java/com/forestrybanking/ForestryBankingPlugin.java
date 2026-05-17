@@ -24,15 +24,9 @@ import net.runelite.client.plugins.PluginDescriptor;
 )
 public class ForestryBankingPlugin extends Plugin
 {
-	// -----------------------------------------------------------------------
-	// TODO: Verify these item IDs in-game.
-	// Enable the "Item ID" RuneLite plugin and hover over the item,
-	// or look them up on the OSRS Wiki.
-	// -----------------------------------------------------------------------
 	private static final int LOG_BASKET_ITEM_ID   = 28113; // Log basket (in inventory)
 	private static final int FORESTRY_KIT_ITEM_ID = 28908; // Forestry kit (worn)
 
-	// All standard log types. Add any missing IDs here.
 	private static final Set<Integer> LOG_ITEM_IDS = ImmutableSet.of(
 		1511,  // Logs
 		1521,  // Oak logs
@@ -92,11 +86,10 @@ public class ForestryBankingPlugin extends Plugin
 			return;
 		}
 
-		int itemId    = event.getIdentifier();
-		int widgetId  = event.getActionParam1();
+		int itemId = event.getIdentifier();
 
-		// ---- Logs in bank inventory ----------------------------------------
-		if (LOG_ITEM_IDS.contains(itemId) && widgetId == InterfaceID.Bankside.ITEMS)
+		// ---- Logs in inventory -----------------------------------------------
+		if (LOG_ITEM_IDS.contains(itemId))
 		{
 			if (config.logsLeftClick())
 			{
@@ -108,8 +101,8 @@ public class ForestryBankingPlugin extends Plugin
 			}
 		}
 
-		// ---- Log basket in bank inventory ------------------------------------
-		if (itemId == LOG_BASKET_ITEM_ID && widgetId == InterfaceID.Bankside.ITEMS)
+		// ---- Log basket in inventory -----------------------------------------
+		if (itemId == LOG_BASKET_ITEM_ID)
 		{
 			if (config.basketLeftClick())
 			{
@@ -121,8 +114,8 @@ public class ForestryBankingPlugin extends Plugin
 			}
 		}
 
-		// ---- Forestry kit worn (equipment panel) ----------------------------
-		if (itemId == FORESTRY_KIT_ITEM_ID && widgetId == InterfaceID.Equipment.CONTENTS)
+		// ---- Forestry kit worn -----------------------------------------------
+		if (itemId == FORESTRY_KIT_ITEM_ID)
 		{
 			if (config.basketLeftClick())
 			{
@@ -135,13 +128,13 @@ public class ForestryBankingPlugin extends Plugin
 		}
 	}
 
-	// -----------------------------------------------------------------------
+	// -------------------------------------------------------------------------
 	// Menu helpers
-	// -----------------------------------------------------------------------
+	// -------------------------------------------------------------------------
 
 	/**
-	 * Moves the first menu entry whose option matches {@code option} to the
-	 * last position in the entries array, making it the left-click action.
+	 * Moves the entry whose option matches {@code option} to the last position
+	 * in the array, making it the left-click action.
 	 */
 	private void swapToLeftClick(String option)
 	{
@@ -166,7 +159,7 @@ public class ForestryBankingPlugin extends Plugin
 	}
 
 	/**
-	 * Moves the first menu entry whose option matches {@code option} to the
+	 * Moves the entry whose option matches {@code option} to the
 	 * second-to-last position, making it the first (top) right-click option.
 	 */
 	private void promoteToTopRightClick(String option)
@@ -187,7 +180,7 @@ public class ForestryBankingPlugin extends Plugin
 			{
 				if (i == target)
 				{
-					return; // already at the top right-click position
+					return; // already top right-click
 				}
 				MenuEntry entry = entries[i];
 

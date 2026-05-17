@@ -24,8 +24,14 @@ import net.runelite.client.plugins.PluginDescriptor;
 )
 public class ForestryBankingPlugin extends Plugin
 {
-	private static final int LOG_BASKET_ITEM_ID   = 28113; // Log basket (in inventory)
-	private static final int FORESTRY_KIT_ITEM_ID = 28908; // Forestry kit (worn)
+	// Log basket (in inventory): closed = 28140, open = 28142
+	// Forestry basket (worn as part of kit): closed = 28143, open = 28145
+	private static final Set<Integer> BASKET_ITEM_IDS = ImmutableSet.of(
+		28140, // Log basket (closed)
+		28142, // Log basket (open)
+		28143, // Forestry basket (closed)
+		28145  // Forestry basket (open)
+	);
 
 	private static final Set<Integer> LOG_ITEM_IDS = ImmutableSet.of(
 		1511,  // Logs
@@ -101,28 +107,17 @@ public class ForestryBankingPlugin extends Plugin
 			}
 		}
 
-		// ---- Log basket in inventory -----------------------------------------
-		if (itemId == LOG_BASKET_ITEM_ID)
+		// ---- Log basket / Forestry basket -----------------------------------
+		if (BASKET_ITEM_IDS.contains(itemId))
 		{
 			if (config.basketLeftClick())
 			{
 				swapToLeftClick("Empty");
-			}
-			else if (config.basketRightClick())
-			{
-				promoteToTopRightClick("Empty");
-			}
-		}
-
-		// ---- Forestry kit worn -----------------------------------------------
-		if (itemId == FORESTRY_KIT_ITEM_ID)
-		{
-			if (config.basketLeftClick())
-			{
 				swapToLeftClick("Empty log basket");
 			}
 			else if (config.basketRightClick())
 			{
+				promoteToTopRightClick("Empty");
 				promoteToTopRightClick("Empty log basket");
 			}
 		}

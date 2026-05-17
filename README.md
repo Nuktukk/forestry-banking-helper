@@ -1,44 +1,42 @@
 # Forestry Banking Helper
 
-A RuneLite plugin that streamlines the tedious process of banking logs during Forestry woodcutting sessions. Instead of manually emptying your log basket and depositing multiple times, this plugin handles the whole sequence in one go.
+A RuneLite plugin that speeds up banking during Forestry woodcutting sessions by swapping menu options on your logs and log basket so you can deposit faster.
 
 ## The Problem
 
-When banking logs with a Forestry log basket, the normal process is:
-1. Deposit logs from inventory
-2. Empty log basket into inventory
-3. Deposit those logs too
+When banking logs with a Forestry log basket, the normal process requires several right-click menus:
+1. Right-click logs → Deposit-All
+2. Right-click basket → Empty
+3. Right-click logs again → Deposit-All
 
-This plugin automates all of that.
+This plugin moves those options to where you want them so you spend less time clicking through menus.
 
 ## Features
 
-### Auto-Deposit Inventory Logs
-Automatically deposits all logs from your inventory the moment you open the bank. No clicking required.
+### Log Menu Swapping
+When the bank is open, the plugin can swap the menu on any logs in your inventory:
+- **Left-click to deposit all** — makes Deposit-All the left-click action on logs
+- **Promote to top of right-click** — moves Deposit-All to the top of the right-click menu
 
-### Auto-Deposit Basket Logs
-Automatically empties your log basket and deposits the logs when you open the bank. Works whether your basket is:
+### Log Basket Menu Swapping
+When the bank is open, the plugin can swap the menu on your log basket. Works whether your basket is:
 - **In your inventory** as a standalone Log basket
 - **Worn** as part of your Forestry kit
 
-The plugin handles the one-tick delay between emptying the basket and the logs landing in your inventory.
-
-### Click to Deposit All *(optional)*
-Adds a **"Deposit all logs"** right-click option directly on logs in your bank inventory panel. Clicking it empties your basket and deposits everything in one click — useful if you prefer to trigger it manually rather than automatically on bank open.
+Options:
+- **Left-click to empty** — makes Empty the left-click action on your basket
+- **Promote to top of right-click** — moves Empty to the top of the right-click menu
 
 ## Configuration
 
 | Option | Default | Description |
 |---|---|---|
-| Auto-deposit inventory logs | On | Deposits logs from inventory when bank opens |
-| Auto-deposit basket logs | On | Empties basket and deposits logs when bank opens |
-| Click logs to deposit all | Off | Adds right-click option on logs for manual trigger |
+| Logs: Left-click to deposit all | Off | Makes Deposit-All the left-click action on logs |
+| Logs: Promote to top of right-click | Off | Moves Deposit-All to the top of the right-click menu on logs |
+| Log Basket: Left-click to empty | Off | Makes Empty the left-click action on your basket |
+| Log Basket: Promote to top of right-click | Off | Moves Empty to the top of the right-click menu on your basket |
 
-All three options can be toggled independently — for example you can turn off auto-deposit and rely solely on the right-click option.
-
-## Bank PIN Support
-
-The plugin detects the bank only after the PIN screen is cleared, so it works correctly whether or not you have a bank PIN set.
+All options are off by default — enable whichever combination suits your playstyle.
 
 ## Supported Log Types
 
